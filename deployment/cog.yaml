@@ -1,0 +1,9 @@
+build:
+  cuda: "11.8"
+  gpu: true
+  python_version: "3.10"
+  python_packages:
+    - "torch==2.0.0"
+    - "torchvision"
+    - "numpy"
+predict: "predict.py:Predictor"
