@@ -1,9 +1,10 @@
 import base64
+import random
 
 import aiohttp
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
+from aiogram.types import Message, InlineKeyboardButton, CallbackQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from utils.config import config
@@ -23,47 +24,65 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
     image_file = await bot.get_file(image.file_id)
     file = await bot.download_file(image_file.file_path)
 
+    price = None
+
     if config.deploy.deploy_type == "cog":
         base64_encoded_data = base64.b64encode(file.read())
         base64_message = base64_encoded_data.decode('utf-8')
 
         async with aiohttp.request(
                 method="post",
-                url=f"http://0.0.0.0:5000/predictions",
+                url=f"http://localhost:5000/predictions",
                 json={"input": {"image": f"data:image/png;base64,{base64_message}"}}
         ) as model_prediction:
             model_prediction = await model_prediction.json()
             logger.info(f"Got prediction for {user_id}: {model_prediction}")
-            await message.reply(model_prediction["output"])
+            price = model_prediction["output"]
     elif config.deploy.deploy_type == "fast_api":
         async with aiohttp.request(
                 method="post",
-                url=f"http://0.0.0.0:5000/predict",
+                url=f"http://localhost:5000/predict",
                 data={"file": file}
         ) as model_prediction:
             model_prediction = await model_prediction.json()
             logger.info(f"Got prediction for {user_id}: {model_prediction}")
-            keyboard = InlineKeyboardBuilder()
-            keyboard.add(
-                InlineKeyboardButton(text="Сгенерировать похожие картины", callback_data="yes")
-            )
-            price = model_prediction['price']
-            price_10_percent = model_prediction['price'] / 10
-            price_lower = int((price - price_10_percent) // 100) * 100
-            price_upper = int((price + price_10_percent) // 100) * 100
-            await message.answer(
-                f"По нашим оценкам картина стоит около ${price_lower}-{price_upper}",
-                reply_markup=keyboard.as_markup()
-            )
+            price = model_prediction["price"]
+
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(
+        InlineKeyboardButton(text="Сгенерировать похожие картины", callback_data=image_file.file_path)
+    )
+
+    if random.random() < 0.5:
+        await message.answer_photo(
+            photo=FSInputFile("bot/handlers/gachi.jpeg", filename="gachi.jpeg"),
+            caption=f"По нашим оценкам картина стоит $300",
+            reply_markup=keyboard.as_markup()
+        )
+    else:
+        price_10_percent = price / 10
+        price_lower = int((price - price_10_percent) // 100) * 100
+        price_upper = int((price + price_10_percent) // 100) * 100
+
+        await message.answer(
+            f"По нашим оценкам картина стоит около ${price_lower}-{price_upper}",
+            reply_markup=keyboard.as_markup()
+        )
 
 
 @router.callback_query()
-async def process_generate(query: CallbackQuery, state: FSMContext):
+async def process_generate(query: CallbackQuery, bot: Bot, state: FSMContext):
     user_id = query.from_user.id
     message = query.message
-    cls = query.data
+    file = query.data
+
+    file = await bot.download_file(file)
 
     logger.info(f"Starting art variations for {user_id}")
 
-
-
+    async with aiohttp.request(
+            method="post",
+            url=f"http://localhost:5000/variate",
+            data={"file": file}
+    ) as model_prediction:
+        print(await model_prediction.json())

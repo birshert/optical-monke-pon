@@ -14,3 +14,4 @@ torchvision==0.15.1
 python-multipart
 diffusers
 transformers
+xformers
