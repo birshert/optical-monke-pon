@@ -68,6 +68,13 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
             f"По нашим оценкам картина стоит около ${price_lower}-{price_upper}",
             reply_markup=keyboard.as_markup()
         )
+        
+        if price < 3000:
+            await bot.send_video_note(message.chat.id, video_note=open('/video/stalker.mp4', 'rb'))
+        elif price >= 3000 and price <= 5000:
+            await bot.send_video_note(message.chat.id, video_note=open('/video/bloodseeker.mp4', 'rb'))
+        else:
+            await bot.send_video_note(message.chat.id, video_note=open('/video/pudge.mp4', 'rb'))
 
 
 @router.callback_query()
