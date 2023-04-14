@@ -11,3 +11,4 @@ prometheus-fastapi-instrumentator==6.0.0
 torch==2.0.0
 torchaudio==2.0.1
 torchvision==0.15.1
+python-multipart

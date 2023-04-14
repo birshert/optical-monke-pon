@@ -34,3 +34,12 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
             model_prediction = await model_prediction.json()
             logger.info(f"Got prediction for {user_id}: {model_prediction}")
             await message.reply(model_prediction["output"])
+    elif config.deploy.deploy_type == "fast_api":
+        async with aiohttp.request(
+                method="post",
+                url=f"http://0.0.0.0:5000/predict",
+                data={"file": file}
+        ) as model_prediction:
+            model_prediction = await model_prediction.json()
+            logger.info(f"Got prediction for {user_id}: {model_prediction}")
+            await message.reply(model_prediction["price"])

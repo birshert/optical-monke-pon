@@ -1,8 +1,12 @@
+from io import BytesIO
 from urllib.request import Request
 
-from fastapi import FastAPI
+from PIL import Image
+from fastapi import FastAPI, UploadFile, File
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
+
+from model import Predictor
 
 app = FastAPI()
 Instrumentator().instrument(app).expose(app)
@@ -10,10 +14,18 @@ Instrumentator().instrument(app).expose(app)
 REQUEST_COUNT = Counter("request_count", "Total count of requests", ["method", "endpoint", "http_status"])
 REQUEST_LATENCY = Histogram("request_latency_seconds", "Request latency", ["method", "endpoint"])
 
+model = Predictor()
+
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+
+@app.post("/predict")
+async def classify_image(file: UploadFile = File(...)):
+    pil_image = Image.open(BytesIO(await file.read()))
+    return {"price": model.predict(pil_image)}
 
 
 @app.middleware("http")
