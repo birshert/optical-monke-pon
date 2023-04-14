@@ -1,9 +1,0 @@
-app_name: art-expert-optical-monke-pon
-object_type: deployment
-org: Team10
-scale_memory: 2048
-server:
-  request_serializer:
-    type: pil_numpy
-  type: fastapi
-type: flyio
