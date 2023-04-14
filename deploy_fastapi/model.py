@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torchvision.transforms as T
+from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
+from torch import channels_last, float16
 from torchvision.models import resnet18
 
 
@@ -34,6 +36,23 @@ class Predictor:
 
     @torch.inference_mode()
     def predict(self, image) -> float:
-        image = self.transforms(image.convert("RGB")).unsqueeze(0).to(self.device)
+        image = self.transforms(image).unsqueeze(0).to(self.device)
 
         return to_real_price(self.model(image))
+
+
+class ImageVariation:
+    def __init__(self):
+        self.pipeline = DiffusionPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-2-1-unclip-small",
+            torch_dtype=float16
+        )
+        self.pipeline.enable_xformers_memory_efficient_attention()
+        self.pipeline.unet.to(memory_format=channels_last)
+        self.pipeline.scheduler = DPMSolverMultistepScheduler.from_config(self.pipeline.scheduler.config)
+
+        self.pipeline.to(torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'))
+
+    @torch.inference_mode()
+    def predict(self, image):
+        return self.pipeline(image, num_images_per_prompt=5).images
