@@ -28,7 +28,7 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
 
         async with aiohttp.request(
                 method="post",
-                url=f"http://0.0.0.0:5000/predictions",
+                url=f"http://0.0.0.0:8000/predictions",
                 json={"input": {"image": f"data:image/png;base64,{base64_message}"}}
         ) as model_prediction:
             model_prediction = await model_prediction.json()
@@ -37,7 +37,7 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
     elif config.deploy.deploy_type == "fast_api":
         async with aiohttp.request(
                 method="post",
-                url=f"http://0.0.0.0:5000/predict",
+                url=f"http://0.0.0.0:8000/predict",
                 data={"file": file}
         ) as model_prediction:
             model_prediction = await model_prediction.json()
