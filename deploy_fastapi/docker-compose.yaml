@@ -6,10 +6,17 @@ services:
     restart: unless-stopped
     container_name: app
     ports:
-      - 8000:8000
+      - 5000:5000
     networks:
       example-network:
         ipv4_address: 172.16.238.10
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
 
   prometheus:
     image: prom/prometheus:latest
