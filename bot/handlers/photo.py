@@ -3,7 +3,8 @@ import base64
 import aiohttp
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from utils.config import config
 from utils.logs import get_bot_logger
@@ -42,4 +43,27 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
         ) as model_prediction:
             model_prediction = await model_prediction.json()
             logger.info(f"Got prediction for {user_id}: {model_prediction}")
-            await message.reply(model_prediction["price"])
+            keyboard = InlineKeyboardBuilder()
+            keyboard.add(
+                InlineKeyboardButton(text="Сгенерировать похожие картины", callback_data="yes")
+            )
+            price = model_prediction['price']
+            price_10_percent = model_prediction['price'] / 10
+            price_lower = int((price - price_10_percent) // 100) * 100
+            price_upper = int((price + price_10_percent) // 100) * 100
+            await message.answer(
+                f"По нашим оценкам картина стоит около ${price_lower}-{price_upper}",
+                reply_markup=keyboard.as_markup()
+            )
+
+
+@router.callback_query()
+async def process_generate(query: CallbackQuery, state: FSMContext):
+    user_id = query.from_user.id
+    message = query.message
+    cls = query.data
+
+    logger.info(f"Starting art variations for {user_id}")
+
+
+
