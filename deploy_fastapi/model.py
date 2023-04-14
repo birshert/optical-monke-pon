@@ -7,16 +7,16 @@ from torchvision.models import resnet18
 
 
 def to_real_price(price):
-    return ((torch.exp(price) - 1) * 1000).item()
+    return torch.clamp((torch.exp(price) - 1) * 1000, 500, 30000).item()
 
 
 class Predictor:
     def __init__(self):
         self.model = resnet18()
         self.model.fc = nn.Sequential(
-            nn.Linear(512, 512),
+            nn.Linear(512, 256),
             nn.LeakyReLU(),
-            nn.Linear(512, 1)
+            nn.Linear(256, 1)
         )
 
         self.model.load_state_dict(torch.load("weights.pth", map_location="cpu"))
@@ -55,4 +55,4 @@ class ImageVariation:
 
     @torch.inference_mode()
     def predict(self, image):
-        return self.pipeline(image, num_images_per_prompt=5).images
+        return self.pipeline(image.resize((512, 512)), num_images_per_prompt=5).images

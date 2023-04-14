@@ -1,10 +1,9 @@
-import io
 from io import BytesIO
 
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from model import Predictor, ImageVariation
@@ -40,11 +39,11 @@ async def variate_image(file: UploadFile = File(...)):
 
     images = variation.predict(pil_image)
 
-    def generate():
-        for image in images:
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format='PNG')
-            yield img_byte_arr.getvalue()
+    result = Image.new('RGB', (512, 512 * len(images)))
 
-    headers = {"Content-Disposition": "attachment; filename=images.zip"}
-    return StreamingResponse(generate(), headers=headers, media_type="application/zip")
+    for i, image in enumerate(images):
+        result.paste(image, (0, 512 * i))
+
+    result.save("tmp.png")
+
+    return FileResponse("tmp.png")

@@ -1,10 +1,12 @@
 import base64
 import random
+from io import BytesIO
 
 import aiohttp
+from PIL import Image
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, InlineKeyboardButton, CallbackQuery, FSInputFile
+from aiogram.types import Message, InlineKeyboardButton, CallbackQuery, FSInputFile, InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from utils.config import config
@@ -24,7 +26,7 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
     image_file = await bot.get_file(image.file_id)
     file = await bot.download_file(image_file.file_path)
 
-    price = None
+    price = 300
 
     if config.deploy.deploy_type == "cog":
         base64_encoded_data = base64.b64encode(file.read())
@@ -68,13 +70,13 @@ async def incoming_photo(message: Message, bot: Bot, state: FSMContext):
             f"По нашим оценкам картина стоит около ${price_lower}-{price_upper}",
             reply_markup=keyboard.as_markup()
         )
-        
-        if price < 3000:
-            await bot.send_video_note(message.chat.id, video_note=open('/video/stalker.mp4', 'rb'))
-        elif price >= 3000 and price <= 5000:
-            await bot.send_video_note(message.chat.id, video_note=open('/video/bloodseeker.mp4', 'rb'))
+
+        if price < 5000:
+            await bot.send_video_note(message.chat.id, video_note=FSInputFile('bot/handlers/video/stalker.mp4'))
+        elif 5000 <= price <= 13000:
+            await bot.send_video_note(message.chat.id, video_note=FSInputFile('bot/handlers/video/bloodseeker.mp4'))
         else:
-            await bot.send_video_note(message.chat.id, video_note=open('/video/pudge.mp4', 'rb'))
+            await bot.send_video_note(message.chat.id, video_note=FSInputFile('bot/handlers/video/pudge.mp4'))
 
 
 @router.callback_query()
@@ -91,5 +93,32 @@ async def process_generate(query: CallbackQuery, bot: Bot, state: FSMContext):
             method="post",
             url=f"http://localhost:5000/variate",
             data={"file": file}
-    ) as model_prediction:
-        print(await model_prediction.json())
+    ) as response:
+        if response.status != 200:
+            await message.answer("Не удалось сгенерировать вариации ;(")
+
+        images = Image.open(BytesIO(await response.content.read()))
+
+        width, height = images.size
+
+        part_height = height // 5
+
+        contents = []
+
+        for i in range(5):
+            top = i * part_height
+            bottom = (i + 1) * part_height
+
+            part = images.crop((0, top, width, bottom))
+
+            part.save(f"part_{i + 1}.png")
+
+            contents.append(
+                InputMediaPhoto(
+                    media=FSInputFile(f"part_{i + 1}.png", filename=f"part_{i + 1}.png")
+                )
+            )
+        contents[0].caption = "Сгенерировали вариации вашей картины, они бесценны"
+        await message.answer_media_group(contents)
+
+    logger.info(f"Ending art variations for {user_id}")
