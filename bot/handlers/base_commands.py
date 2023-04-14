@@ -14,3 +14,9 @@ router = Router()
 async def info(message: Message, state: FSMContext):
     logger.info(f"Started for user {message.from_user.id}")
     await message.answer("Добро пожаловать!")
+
+
+@router.message(Command(commands=["meme"]))
+async def info(message: Message, state: FSMContext):
+    logger.info(f"Meme user {message.from_user.id}")
+    await message.answer_sticker(sticker="CAACAgIAAxkBAAEIlK1kOYMjfpbNqMaupdq0SfakOBeqMwAChxcAAgzwWErywdtxMQ5ycC8E")
