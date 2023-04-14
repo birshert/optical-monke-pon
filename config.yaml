@@ -1,0 +1,3 @@
+deploy:
+  deploy_type: cog
+  deploy_port: 5000
