@@ -1,4 +1,4 @@
-build:
+build: cog.yaml
 	cog build -t monke-model:latest
 
 run: build
