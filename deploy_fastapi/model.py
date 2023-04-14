@@ -32,6 +32,7 @@ class Predictor:
         self.model.to(self.device)
         self.model.eval()
 
+    @torch.inference_mode()
     def predict(self, image) -> float:
         image = self.transforms(image.convert("RGB")).unsqueeze(0).to(self.device)
 
