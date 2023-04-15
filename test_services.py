@@ -33,20 +33,26 @@ async def async_requests(services, imgs):
         return responses
 
 
-services = ["http://91.77.160.33:5000/predict", "http://91.77.160.33:5000/predict", "http://91.77.160.33:5000/predict"]
+async def main():
+    services = ["http://91.77.160.33:5000/predict", "http://91.77.160.33:5000/predict",
+                "http://91.77.160.33:5000/predict"]
 
-test = pd.read_csv("artDataset.csv")
-test.price = test.price.map(lambda x: int(x[:-4].replace(".", "")))
+    test = pd.read_csv("artDataset.csv")
+    test.price = test.price.map(lambda x: int(x[:-4].replace(".", "")))
 
-teams_y_pred = []
-y_true = []
+    teams_y_pred = []
+    y_true = []
 
-for i, row in test.iterrows():
-    y_true.append(row.price)
+    for i, row in test.iterrows():
+        y_true.append(row.price)
 
-    with open(f"artDataset/image_{i + 1}.png", "rb") as f:
-        img_data = f.read()
-        imgs = [BytesIO(img_data) for _ in services]
+        with open(f"artDataset/image_{i + 1}.png", "rb") as f:
+            img_data = f.read()
+            imgs = [BytesIO(img_data) for _ in services]
 
-    res = await async_requests(services, imgs)
-    teams_y_pred.append(res)
+        res = await async_requests(services, imgs)
+        teams_y_pred.append(res)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
