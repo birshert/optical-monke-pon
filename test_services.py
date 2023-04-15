@@ -2,6 +2,7 @@ import asyncio
 from io import BytesIO
 
 import aiohttp
+import numpy as np
 import pandas as pd
 
 
@@ -43,7 +44,7 @@ async def main():
     teams_y_pred = []
     y_true = []
 
-    for i, row in test.iterrows():
+    for i, row in test.sample(100).iterrows():
         y_true.append(row.price)
 
         with open(f"artDataset/image_{i + 1}.png", "rb") as f:
@@ -52,6 +53,23 @@ async def main():
 
         res = await async_requests(services, imgs)
         teams_y_pred.append(res)
+
+        print("".join(["." if p else "E" for p in res]))
+
+    df = pd.DataFrame(teams_y_pred, columns=list(range(len(services))))
+
+    teams_wo_miss = []
+    for team in df:
+        miss_ratio = np.mean(np.isnan(df[team]))
+        print(f"Team {team} has miss ratio of {miss_ratio}")
+        if miss_ratio > 0.50:  # this will be 0.025 for finals
+            print(f"  :'( Removing team {team}")
+        else:
+            teams_wo_miss.append(team)
+
+    results = (df[teams_wo_miss].apply(lambda x: np.log10(x) - np.log10(y_true)).dropna() ** 2).mean() ** 0.5
+
+    print(results)
 
 
 if __name__ == "__main__":
