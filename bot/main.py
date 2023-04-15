@@ -30,7 +30,6 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await bot.set_my_commands(
         [
-            BotCommand(command="info", description="Информация о работе бота"),
             BotCommand(command="start", description="Начать работу"),
             BotCommand(command="i_wanna_random_monkey_sticker", description="Отправим вам стикер с бибзяной"),
             BotCommand(command="pon", description="пон")

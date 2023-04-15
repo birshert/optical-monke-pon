@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import random
 from io import BytesIO
@@ -14,6 +15,7 @@ from utils.logs import get_bot_logger
 
 logger = get_bot_logger()
 router = Router()
+lock = asyncio.Lock()
 
 
 @router.message(F.photo)
@@ -87,38 +89,39 @@ async def process_generate(query: CallbackQuery, bot: Bot, state: FSMContext):
 
     file = await bot.download_file(file)
 
-    logger.info(f"Starting art variations for {user_id}")
+    async with lock:
+        logger.info(f"Starting art variations for {user_id}")
 
-    async with aiohttp.request(
-            method="post",
-            url=f"http://localhost:5000/variate",
-            data={"file": file}
-    ) as response:
-        if response.status != 200:
-            await message.answer("Не удалось сгенерировать вариации ;(")
+        async with aiohttp.request(
+                method="post",
+                url=f"http://localhost:5000/variate",
+                data={"file": file}
+        ) as response:
+            if response.status != 200:
+                await message.answer("Не удалось сгенерировать вариации ;(")
 
-        images = Image.open(BytesIO(await response.content.read()))
+            images = Image.open(BytesIO(await response.content.read()))
 
-        width, height = images.size
+            width, height = images.size
 
-        part_height = height // 5
+            part_height = height // 5
 
-        contents = []
+            contents = []
 
-        for i in range(5):
-            top = i * part_height
-            bottom = (i + 1) * part_height
+            for i in range(5):
+                top = i * part_height
+                bottom = (i + 1) * part_height
 
-            part = images.crop((0, top, width, bottom))
+                part = images.crop((0, top, width, bottom))
 
-            part.save(f"part_{i + 1}.png")
+                part.save(f"part_{i + 1}.png")
 
-            contents.append(
-                InputMediaPhoto(
-                    media=FSInputFile(f"part_{i + 1}.png", filename=f"part_{i + 1}.png")
+                contents.append(
+                    InputMediaPhoto(
+                        media=FSInputFile(f"part_{i + 1}.png", filename=f"part_{i + 1}.png")
+                    )
                 )
-            )
-        contents[0].caption = "Сгенерировали вариации вашей картины, они бесценны"
-        await message.answer_media_group(contents)
+            contents[0].caption = "Сгенерировали вариации вашей картины, они бесценны"
+            await message.answer_media_group(contents)
 
-    logger.info(f"Ending art variations for {user_id}")
+        logger.info(f"Ending art variations for {user_id}")
